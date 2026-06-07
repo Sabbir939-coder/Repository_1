@@ -1,3 +1,3 @@
-int sum_b(int a, int b) {
+int sum_b_c(int a, int b) {
     return a + b;
 }
