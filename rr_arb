@@ -1,0 +1,43 @@
+    module rr_arbiter #(parameter N = 4) (
+    input  logic             clk,
+    input  logic             rst_n,
+    input  logic [N-1:0]     req,
+    output logic [N-1:0]     grant
+);
+
+    logic [$clog2(N)-1:0] ptr;
+    logic [N-1:0] grant_comb;
+    logic [$clog2(N)-1:0] next_ptr;
+    logic next_ptr_valid;
+
+    integer i;
+
+    always_comb begin
+        grant_comb      = '0;
+        next_ptr       = '0;
+        next_ptr_valid = 1'b0;
+
+        // search from pointer to N-1 and compute next pointer
+        for (i = 0; i < N; i++) begin
+            if (req[(ptr + i) % N]) begin
+                grant_comb[(ptr + i) % N] = 1'b1;
+                next_ptr = (ptr + i + 1) % N;
+                next_ptr_valid = 1'b1;
+                break;
+            end
+        end
+    end
+
+    // output grant combinationally so requests are granted in the same cycle
+    assign grant = grant_comb;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            ptr <= '0;
+        end else if (next_ptr_valid) begin
+            ptr <= next_ptr;
+        end
+    end
+
+endmodule
+    
