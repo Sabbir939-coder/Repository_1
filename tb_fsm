@@ -1,0 +1,71 @@
+module tb_apb_fsm();
+    logic clk = 0;
+    logic rst_n = 0;
+    logic empty = 1;
+    logic s_pready = 0;
+
+    logic s_psel;
+    logic s_penable;
+    logic rd_en;
+    logic we_en;
+
+    apb_fsm dut (
+        .clk       (clk),
+        .rst_n     (rst_n),
+        .empty     (empty),
+        .s_pready  (s_pready),
+        .s_psel    (s_psel),
+        .s_penable (s_penable),
+        .rd_en     (rd_en),
+        .we_en     (we_en)
+    );
+
+    // Clock generator
+    initial forever #5 clk = ~clk;
+
+    initial begin
+        $display("Starting tb_apb_fsm");
+        $dumpfile("tb_apb_fsm.vcd");
+        $dumpvars(0, tb_apb_fsm);
+
+        rst_n = 0;
+        empty = 1;
+        s_pready = 0;
+        #20;
+
+        rst_n = 1;
+        #10;
+
+        // No request while FIFO empty
+        empty = 1;
+        s_pready = 0;
+        #20;
+
+        // Request arrives: should move to SETUP
+        empty = 0;
+        #10;
+
+        // During SETUP, peripheral not ready -> go to WAIT
+        s_pready = 0;
+        #10;
+
+        // WAIT state should assert s_psel and s_penable
+        #10;
+
+        // Peripheral becomes ready and the transaction completes
+        s_pready = 1;
+        #10;
+
+        // Back to IDLE
+        empty = 1;
+        #20;
+
+        $display("Finished tb_apb_fsm");
+        $finish;
+    end
+
+    initial begin
+        $monitor("%0t rst_n=%b empty=%b s_pready=%b | s_psel=%b s_penable=%b rd_en=%b we_en=%b",
+                 $time, rst_n, empty, s_pready, s_psel, s_penable, rd_en, we_en);
+    end
+endmodule
