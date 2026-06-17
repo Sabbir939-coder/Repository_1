@@ -1,0 +1,104 @@
+module apb_fsm (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic empty,
+    input  logic s_pready,
+
+    output logic  s_psel,
+    output logic  s_penable,
+    output logic  rd_en,
+    output logic  we_en
+);
+
+    // State Encoding
+    typedef enum logic [1:0] {
+        IDLE   = 2'b00,
+        SETUP  = 2'b01,
+        WAIT   = 2'b10,
+        ACCESS = 2'b11
+    } state_t;
+
+    state_t state, next_state;
+
+    
+    // State Register
+    
+    always_ff    @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            state <= IDLE;
+        else
+            state <= next_state;
+    end
+
+    
+    // Next State Logic
+    
+    always_comb 
+    begin
+        next_state = state;
+
+        case (state)
+
+            IDLE: begin
+                if (!empty)
+                next_state = SETUP;
+            end
+
+            SETUP: begin
+                if (s_pready)
+                    next_state = ACCESS;
+                else
+                    next_state = WAIT  ;
+            end
+
+            WAIT  : begin
+                if (s_pready)
+                    next_state = ACCESS;
+            end
+
+            ACCESS: begin
+                next_state = IDLE;
+            end
+
+            default: next_state = IDLE;
+        endcase
+    end
+
+    
+    // Output Logic
+    
+    always_comb  begin
+        // Defaults
+        s_psel    = 1'b0;
+        s_penable = 1'b0;
+        rd_en     = 1'b0;
+        we_en     = 1'b0;
+
+        case (state)
+
+            IDLE: begin
+                s_psel    = 1'b0;
+                s_penable = 1'b0;
+            end
+
+            SETUP: begin
+                s_psel    = 1'b1;
+                s_penable = 1'b0;
+            end
+
+            WAIT  : begin
+                s_psel    = 1'b1;
+                s_penable = 1'b1;
+            end
+
+            ACCESS: begin
+                s_psel    = 1'b1;
+                s_penable = 1'b1;
+                rd_en     = 1'b1;
+                we_en     = 1'b1;
+            end
+
+        endcase
+    end
+
+endmodule
